@@ -1,3 +1,5 @@
+//utils.js
+
 import { resourceConstants, rootUrls } from "./constants/index.js"; // Ensure you have the correct path to your constants file
 
 /**
@@ -20,7 +22,6 @@ const validateParams = (keywords, resourceFlag) => {
   }
 };
 
-
 /**
  * Creates a query string from an array of keywords.
  * @param {string[]} keywords - An array of keywords to be used in the query string.
@@ -36,7 +37,10 @@ export const createQuery = (keywords, resourceFlag) => {
     case resourceConstants.YOUTUBE:
       return `results?search_query=${queryString}`;
     case resourceConstants.UDEMY:
-      return `courses/search/?src=ukw&q=${queryString}`;
+      const encodedKeywords = keywords
+        .map((keyword) => encodeURIComponent(keyword))
+        .join("+");
+      return `courses/?page=1&page_size=10&search=${encodedKeywords}&ordering=highest-rated`;
     case resourceConstants.COURSERA:
       return `search?query=${queryString}`;
     case resourceConstants.MEDIUM:

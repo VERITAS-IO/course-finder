@@ -1,4 +1,4 @@
 import puppeteerJumpTable from "./puppeteer.js";
 import cheerioJumpTable from "./cheerio.js";
-
-export { puppeteerJumpTable, cheerioJumpTable };
+import apiClientsJumpTable from "./apiClients.js";
+export { puppeteerJumpTable, cheerioJumpTable, apiClientsJumpTable };

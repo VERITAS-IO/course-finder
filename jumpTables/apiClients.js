@@ -14,8 +14,13 @@ const getMediumArticles = async () => {
   throw new Error("Medium function is not implemented yet.");
 };
 
+const getYoutubeCourses = async () => {
+    // Placeholder function for Youtube
+    throw new Error("Youtube function is not implemented yet.");
+  };
+  
 const functionTable = {
-  YOUTUBE: getTopYouTubeLinksAndTitles,
+  YOUTUBE: getYoutubeCourses,
   UDEMY: UdemyClientApi.getVideoList,
   COURSERA: getCourseraCourses,
   MEDIUM: getMediumArticles,

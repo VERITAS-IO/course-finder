@@ -3,8 +3,13 @@ import axios from "axios";
 import cheerio from "cheerio";
 import { getTopYouTubeLinksAndTitles } from "./webScrapping/puppeteer/youtube.js";
 import resourceConstants from "./constants/ResourceConstants.js";
-import {puppeteerJumpTable, cheerioJumpTable} from "./jumpTables/index.js";
+import {
+  puppeteerJumpTable,
+  cheerioJumpTable,
+  apiClientsJumpTable,
+} from "./jumpTables/index.js";
 import SearchResourcesFromPlatformsResponse from "./models/response/SearchResultsFromPlatformsResponse.js";
+import resourceConfig from "./config/resource.js";
 /**
  * An object containing available functions for the application.
  * @type {Object}
@@ -70,7 +75,7 @@ export async function searchResourcesFromPlatforms({
   const promises = resourceFlags.map(async (flag) => {
     try {
       const url = createUrl([topic, level, "course"], flag);
-      const response = await executeRelevantFunction(url, flag, "cheerio");
+      const response = await executeRelevantFunction(url, flag);
       responses[flag] = response;
     } catch (error) {
       console.error(`Error fetching data for flag ${flag}:`, error);
@@ -91,17 +96,18 @@ export async function searchResourcesFromPlatforms({
   );
 }
 
-const executeRelevantFunction = async (url, resourceFlag, scrappingTool) => {
+const executeRelevantFunction = async (url, resourceFlag) => {
   try {
-    switch (scrappingTool) {
+    switch (resourceConfig.INFO_RESOURCE_TOOL) {
       case "puppeteer":
         return await puppeteerJumpTable[resourceFlag.toUpperCase()](url);
       case "cheerio":
         return await cheerioJumpTable[resourceFlag.toUpperCase()](url);
+      case "api-client":
+        return await apiClientsJumpTable[resourceFlag.toUpperCase()](url);
       default:
         break;
     }
-    
   } catch (error) {
     throw error;
   }

@@ -1,5 +1,7 @@
-import axios from 'axios';
+import puppeteer from 'puppeteer';
 import cheerio from 'cheerio';
+import { getCustomConfig, restrictionConfig } from "../../config.js";
+import { improvePerformance } from "../puppeteer/utils.js";
 
 /**
  * Retrieves the top YouTube video links and titles for a given search URL.
@@ -11,8 +13,22 @@ export async function getTopYouTubeLinksAndTitles(searchUrl) {
   const youtubeScrapingStarted = performance.now();
 
   try {
-    // Fetch the HTML content of the search page
-    const { data: html } = await axios.get(searchUrl, { timeout: 15000 });
+    // Launch Puppeteer
+    const browser = await puppeteer.launch(getCustomConfig(true));
+    const page = await browser.newPage();
+    await improvePerformance(page);
+
+    // Navigate to YouTube search URL
+    await page.goto(searchUrl, { waitUntil: 'networkidle0' });
+
+    // Wait for the search results to load
+    await page.waitForSelector('ytd-video-renderer');
+
+    // Get the rendered HTML content
+    const html = await page.content();
+
+    // Close Puppeteer
+    await browser.close();
 
     // Load the HTML into Cheerio
     const $ = cheerio.load(html);

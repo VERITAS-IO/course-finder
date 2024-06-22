@@ -1,13 +1,34 @@
-import axios from 'axios';
+import puppeteer from 'puppeteer';
 import cheerio from 'cheerio';
+import {improvePerformance } from "../puppeteer/utils.js"
+import { getCustomConfig, restrictionConfig } from "../../config.js";
 
+/**
+ * Retrieves Udemy course details for a given search URL.
+ * @param {string} searchUrl - The URL for the Udemy search.
+ * @returns {Promise<{ time: string, results: Object[] }>} A Promise that resolves with an object containing the current time and an array of course results.
+ */
 async function getUdemyCourses(searchUrl) {
   console.log("Udemy Scraping Started");
   const udemyScrapingStarted = performance.now();
 
   try {
-    // Fetch the HTML content of the search page
-    const { data: html } = await axios.get(searchUrl, { timeout: 15000 });
+    // Launch Puppeteer
+    const browser = await puppeteer.launch(getCustomConfig(true));
+    const page = await browser.newPage();
+    await improvePerformance(page);
+
+    // Navigate to Udemy search URL
+    await page.goto(searchUrl, { waitUntil: 'networkidle0' });
+
+    // Wait for the course results to load
+    await page.waitForSelector('.course-card-module--main-content--pEiUr');
+
+    // Get the rendered HTML content
+    const html = await page.content();
+
+    // Close Puppeteer
+    await browser.close();
 
     // Load the HTML into Cheerio
     const $ = cheerio.load(html);
@@ -25,7 +46,7 @@ async function getUdemyCourses(searchUrl) {
       const priceElement = $(element).find('.course-card-module--price-text-base-price-text-component-discount-price--Xztnd');
       const badgesElement = $(element).find('.course-badges-module--course-badges--NtSTO');
 
-      const firstLink = titleElement.find('a').attr('href') ?? null;
+      const firstLink = titleElement.find('a').attr('href') ? `https://www.udemy.com${titleElement.find('a').attr('href')}` : '';
 
       results.push({
         link: firstLink,
@@ -52,5 +73,4 @@ async function getUdemyCourses(searchUrl) {
     return { time: new Date().toUTCString(), results: [] };
   }
 }
-
 export { getUdemyCourses };
