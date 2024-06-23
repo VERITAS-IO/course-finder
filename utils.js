@@ -1,6 +1,9 @@
 //utils.js
 
 import { resourceConstants, rootUrls } from "./constants/index.js"; // Ensure you have the correct path to your constants file
+import { buildYoutubeParams } from "./config/axios/youtube.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 /**
  * Validates the input parameters.
@@ -35,7 +38,7 @@ export const createQuery = (keywords, resourceFlag) => {
 
   switch (resourceFlag) {
     case resourceConstants.YOUTUBE:
-      return `results?search_query=${queryString}`;
+      return createYoutubeQuery(keywords);
     case resourceConstants.UDEMY:
       const encodedKeywords = keywords
         .map((keyword) => encodeURIComponent(keyword))
@@ -48,6 +51,19 @@ export const createQuery = (keywords, resourceFlag) => {
     default:
       throw new Error("Invalid resource flag."); // This line should never be reached due to validation
   }
+};
+
+/**
+ * Creates the query string for a YouTube search request based on provided keywords.
+ *
+ * @param {string[]} keywords - An array of keywords to include in the search query.
+ * @returns {string} The query string for the YouTube API request.
+ */
+const createYoutubeQuery = (keywords) => {
+  let searchQuery = keywords.join(" ");
+  let params = buildYoutubeParams(searchQuery);
+  const query = new URLSearchParams(params).toString();
+  return query;
 };
 
 /**
@@ -82,5 +98,42 @@ export const createUrl = (keywords, resourceFlag) => {
       )}`;
     default:
       throw new Error("Invalid resource flag."); // This line is more for safety; it should never be reached.
+  }
+};
+
+/**
+ * Generates the Basic Authentication header for Udemy API requests.
+ *
+ * @returns {string} The Basic Authentication header.
+ */
+const createUdemyAuth = () => {
+  const basicAuth = `Basic ${Buffer.from(
+    `${process.env.UDEMY_CLIENT_IDENTITY}:${process.env.UDEMY_CLIENT_KEY}`
+  ).toString("base64")}`;
+  return basicAuth;
+};
+
+/**
+ * Generates the Authentication header for YouTube API requests.
+ *
+ * @returns {null} Since no authentication is required for YouTube, it returns null.
+ */
+const createYoutubeAuth = () => {
+  return null;
+};
+
+/**
+ * Generates the appropriate Authentication header based on the provided flag.
+ * @param {string} resourceFlag - The flag indicating which authentication to create.
+ * @returns {string|null} The generated Authentication header, or an empty string if the resourceFlag does not match.
+ */
+export const createAuth = (resourceFlag) => {
+  switch (resourceFlag) {
+    case resourceConstants.UDEMY:
+      return createUdemyAuth();
+    case resourceConstants.YOUTUBE:
+      return createYoutubeAuth();
+    default:
+      return "";
   }
 };

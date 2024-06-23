@@ -1,6 +1,7 @@
 import { getTopYouTubeLinksAndTitles } from "../webScrapping/cheerio/youtube.js";
 import { getUdemyCourses } from "../webScrapping/cheerio/udemy.js";
 import UdemyClientApi from "../apiClients/udemy.js";
+import YoutubeApiClient from "../apiClients/youtube.js";
 
 // Placeholder functions for platforms that are not yet implemen
 
@@ -14,13 +15,8 @@ const getMediumArticles = async () => {
   throw new Error("Medium function is not implemented yet.");
 };
 
-const getYoutubeCourses = async () => {
-    // Placeholder function for Youtube
-    throw new Error("Youtube function is not implemented yet.");
-  };
-  
 const functionTable = {
-  YOUTUBE: getYoutubeCourses,
+  YOUTUBE: YoutubeApiClient.getVideoList,
   UDEMY: UdemyClientApi.getVideoList,
   COURSERA: getCourseraCourses,
   MEDIUM: getMediumArticles,
