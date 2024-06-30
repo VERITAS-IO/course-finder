@@ -33,9 +33,7 @@ const validateParams = (keywords, resourceFlag) => {
  */
 export const createQuery = (keywords, resourceFlag) => {
   validateParams(keywords, resourceFlag);
-
   const queryString = keywords.join("+");
-
   switch (resourceFlag) {
     case resourceConstants.YOUTUBE:
       return createYoutubeQuery(keywords);
@@ -59,7 +57,7 @@ export const createQuery = (keywords, resourceFlag) => {
  * @param {string[]} keywords - An array of keywords to include in the search query.
  * @returns {string} The query string for the YouTube API request.
  */
-const createYoutubeQuery = (keywords) => {
+const createYoutubeQuery = (keywords) => { //blockchain, beginner
   let searchQuery = keywords.join(" ");
   let params = buildYoutubeParams(searchQuery);
   const query = new URLSearchParams(params).toString();
@@ -74,10 +72,9 @@ const createYoutubeQuery = (keywords) => {
  */
 export const createUrl = (keywords, resourceFlag) => {
   validateParams(keywords, resourceFlag);
-
   switch (resourceFlag) {
     case resourceConstants.YOUTUBE:
-      return `${rootUrls.YOUTUBE}/${createQuery(
+      return `${rootUrls.YOUTUBE}${createQuery(
         keywords,
         resourceConstants.YOUTUBE
       )}`;
@@ -100,6 +97,8 @@ export const createUrl = (keywords, resourceFlag) => {
       throw new Error("Invalid resource flag."); // This line is more for safety; it should never be reached.
   }
 };
+
+
 
 /**
  * Generates the Basic Authentication header for Udemy API requests.
@@ -137,3 +136,36 @@ export const createAuth = (resourceFlag) => {
       return "";
   }
 };
+
+
+export function updateUrlQueryParams(baseUrl, { removeKeys = [], updateParams = {} }) {
+  // Create a URL object
+  let url = new URL(baseUrl);
+
+  // Create a URLSearchParams object from the URL's existing search parameters
+  let params = new URLSearchParams(url.search);
+
+  // Remove query parameters based on the provided keys
+  removeKeys.forEach(key => {
+    if (params.has(key)) {
+      params.delete(key);
+    }
+  });
+
+  // Update query parameters based on the provided key-value pairs
+  Object.keys(updateParams).forEach(key => {
+    const value = updateParams[key];
+    if (Array.isArray(value)) {
+      // If the value is an array, join it into a comma-separated string
+      params.set(key, value.join(','));
+    } else {
+      // Otherwise, set the value directly
+      params.set(key, value);
+    }
+  });
+
+  // Set the search params back to the URL object
+  url.search = params.toString();
+
+  return url.toString();
+}

@@ -2,9 +2,10 @@
 import FunctionCallingService from "../services/FunctionCallingService.js";
 
 class FunctionCallingsController {
+  constructor() {}
   async getResponse(req, res, next) {
     try {
-      const { userInput, resourceFlags} = req.body;
+      const { userInput, resourceFlags } = req.body;
       const chatMessages = [
         {
           role: "system",
@@ -16,8 +17,12 @@ class FunctionCallingsController {
           content: `${userInput}`,
         },
       ];
-      const response = await FunctionCallingService.getResponse(chatMessages, resourceFlags);
-      res.status(200).json({ response });
+      const response = await FunctionCallingService.getResponse(
+        chatMessages,
+        resourceFlags
+      );
+      const parsedResponse = JSON.parse(response);
+      res.status(200).json({ parsedResponse});
     } catch (error) {
       next(error);
     }

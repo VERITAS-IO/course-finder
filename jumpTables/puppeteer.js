@@ -20,3 +20,4 @@ const functionTable = {
 };
 
 export default functionTable;
+

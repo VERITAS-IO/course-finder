@@ -13,7 +13,6 @@ import ApiError from "../models/errors/ApiError.js";
 dotenv.config();
 const openAiApiKey = process.env.OPENAI_API_KEY;
 const openAiEndpoint = process.env.OPEN_AI_ENDPOINT;
-
 const openAiClient = new OpenAI({ apiKey: openAiApiKey });
 
 class FunctionCallingService {
@@ -57,6 +56,13 @@ class FunctionCallingService {
         content: JSON.stringify(functionResponse),
       };
 
+      chatMessages.push({
+        role: "system",
+        content: `For youtube, return answer in an object list format that includes url, channelName, thumbnailUrl etc. And For udemy, do the same thing but with udemy properties.
+             If you have an extra joke, introdcution before answer etc. anything but not related to course informations, also return them in an object with properties such as {..funnyEntrance etc..} 
+             Return the response in a JSON format, I will parse it.
+             `,
+      });
       const expansedMessages = expandMessages(
         chatMessages,
         assistantExpanseMessage,

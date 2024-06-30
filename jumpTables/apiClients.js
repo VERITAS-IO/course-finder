@@ -4,7 +4,6 @@ import UdemyClientApi from "../apiClients/udemy.js";
 import YoutubeApiClient from "../apiClients/youtube.js";
 
 // Placeholder functions for platforms that are not yet implemen
-
 const getCourseraCourses = async () => {
   // Placeholder function for Coursera
   throw new Error("Coursera function is not implemented yet.");

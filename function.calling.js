@@ -75,7 +75,7 @@ export async function searchResourcesFromPlatforms({
   const promises = resourceFlags.map(async (flag) => {
     try {
       const url = createUrl([topic, level, "course"], flag);
-      const response = await executeRelevantFunction(url, flag);
+      const response = executeRelevantFunction(url, flag);
       responses[flag] = response;
     } catch (error) {
       console.error(`Error fetching data for flag ${flag}:`, error);
@@ -87,6 +87,7 @@ export async function searchResourcesFromPlatforms({
   } catch (error) {
     throw new Error("Error processing resource flags:", error);
   }
+
 
   return new SearchResourcesFromPlatformsResponse(
     responses[resourceConstants.YOUTUBE],
