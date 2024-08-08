@@ -20,6 +20,7 @@ const validateParams = (keywords, resourceFlag) => {
     throw new Error("Resource flag must be a string.");
   }
 
+  console.log("resourceflag:", resourceFlag);
   if (!Object.values(resourceConstants).includes(resourceFlag)) {
     throw new Error("Invalid resource flag.");
   }

@@ -1,3 +1,4 @@
+// Import statements
 import { createUrl } from "./utils.js";
 import axios from "axios";
 import cheerio from "cheerio";
@@ -10,40 +11,32 @@ import {
 } from "./jumpTables/index.js";
 import SearchResourcesFromPlatformsResponse from "./models/response/SearchResultsFromPlatformsResponse.js";
 import resourceConfig from "./config/resource.js";
-/**
- * An object containing available functions for the application.
- * @type {Object}
- * @property {Function} searchCoursesFromYoutube - A function to search for courses from YouTube based on a topic and level.
- */
+
+// Available functions
 export const availableFunctions = {
-  searchCoursesFromYoutube: searchCoursesFromYoutube,
-  searchCoursesFromUdemy: "",
-  searchCoursesFromCoursera: "",
-  searchBlogsFromMedium: "",
-  searchResourcesFromPlatforms: searchResourcesFromPlatforms,
+  searchCoursesFromYoutube,
+  searchResourcesFromPlatforms,
+  // Add other functions as they are implemented
+  searchCoursesFromUdemy: null,
+  searchCoursesFromCoursera: null,
+  searchBlogsFromMedium: null,
 };
 
-/**
- * An array describing the available functions and their parameters.
- * @type {Object[]}
- */
+// Function descriptions for API
 export const functions = [
   {
     name: "searchResourcesFromPlatforms",
-    description:
-      "Get the best courses and blogposts' links from youtube, udemy, coursera and medium",
+    description: "Get the best courses and blogposts' links from various platforms",
     parameters: {
       type: "object",
       properties: {
         topic: {
           type: "string",
-          description:
-            "The topic that the lesson is covering (i.e. Azure, Power BI, JavaScript, Microservices, Clean Code, Generative AI, Blockchain etc.)",
+          description: "The topic of the lesson (e.g., Azure, Power BI, JavaScript)",
         },
         level: {
           type: "string",
-          description:
-            "The level of experience the learner has prior to taking the course (i.e. beginner, intermediate, advanced)",
+          description: "The learner's experience level (beginner, intermediate, advanced)",
         },
       },
       required: ["topic"],
@@ -54,65 +47,36 @@ export const functions = [
 /**
  * Searches for courses from YouTube based on a given topic and level.
  * @param {Object} props - An object containing the topic and level.
- * @param {string} props.topic - The topic of the course.
- * @param {string} [props.level] - The level of the course (optional).
  * @returns {Promise<Object[]>} A Promise that resolves with an array of course information objects.
  */
-export async function searchCoursesFromYoutube(props) {
-  const { topic, level } = props;
+export async function searchCoursesFromYoutube({ topic, level }) {
   const url = createUrl([topic, level, "course"], resourceConstants.YOUTUBE);
-  const results = await getTopYouTubeLinksAndTitles(url);
-  return results;
+  return await getTopYouTubeLinksAndTitles(url);
 }
 
-export async function searchResourcesFromPlatforms({
-  topic,
-  level,
-  resourceFlags,
-}) {
+/**
+ * Searches for resources from multiple platforms.
+ * @param {Object} params - Search parameters
+ * @param {string} params.topic - The topic to search for
+ * @param {string} params.level - The difficulty level
+ * @param {string[]} params.resourceFlags - Platforms to search (e.g., ['youtube', 'udemy'])
+ * @returns {Promise<SearchResourcesFromPlatformsResponse>} Search results
+ */
+export async function searchResourcesFromPlatforms({ topic, level, resourceFlags }) {
   const responses = {};
 
-  const promises = resourceFlags.map(async (flag) => {
+  await Promise.all(resourceFlags.map(async (flag) => {
     try {
       const url = createUrl([topic, level, "course"], flag);
-      const response = executeRelevantFunction(url, flag);
-      responses[flag] = response;
+      responses[flag] = await apiClientsJumpTable[flag.toUpperCase()](url);
     } catch (error) {
-      console.error(`Error fetching data for flag ${flag}:`, error);
-      responses[flag] = null; // Or any default value indicating failure
+      console.error(`Error fetching data for ${flag}:`, error);
+      responses[flag] = null;
     }
-  });
-  try {
-    await Promise.all(promises);
-  } catch (error) {
-    throw new Error("Error processing resource flags:", error);
-  }
+  }));
 
-
-  return new SearchResourcesFromPlatformsResponse(
-    responses[resourceConstants.YOUTUBE],
-    responses[resourceConstants.UDEMY],
-    responses[resourceConstants.COURSERA],
-    responses[resourceConstants.MEDIUM]
-  );
+  return new SearchResourcesFromPlatformsResponse(responses);
 }
-
-const executeRelevantFunction = async (url, resourceFlag) => {
-  try {
-    switch (resourceConfig.INFO_RESOURCE_TOOL) {
-      case "puppeteer":
-        return await puppeteerJumpTable[resourceFlag.toUpperCase()](url);
-      case "cheerio":
-        return await cheerioJumpTable[resourceFlag.toUpperCase()](url);
-      case "api-client":
-        return await apiClientsJumpTable[resourceFlag.toUpperCase()](url);
-      default:
-        break;
-    }
-  } catch (error) {
-    throw error;
-  }
-};
 
 /**
  * Expands the conversation messages by appending the assistant response and function response.
@@ -122,21 +86,9 @@ const executeRelevantFunction = async (url, resourceFlag) => {
  * @returns {Object[]} An array of expanded conversation messages.
  */
 export function expandMessages(messages, assistantResponse, functionResponse) {
-  try {
-    // Check if assistantResponse or functionResponse is undefined
-    if (
-      typeof assistantResponse === "undefined" ||
-      typeof functionResponse === "undefined"
-    ) {
-      throw new Error("Assistant response or function response is undefined.");
-    }
-
-    // Create a new array by spreading the existing messages and appending the assistant and function responses
-    const expandedMessages = [...messages, assistantResponse, functionResponse];
-
-    return expandedMessages;
-  } catch (error) {
-    console.error("An error occurred while expanding messages:", error.message);
-    throw error;
+  if (!assistantResponse || !functionResponse) {
+    throw new Error("Assistant response or function response is undefined.");
   }
+
+  return [...messages, assistantResponse, functionResponse];
 }
