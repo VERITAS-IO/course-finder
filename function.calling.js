@@ -2,11 +2,8 @@
 import { createUrl } from "./utils.js";
 import axios from "axios";
 import cheerio from "cheerio";
-import { getTopYouTubeLinksAndTitles } from "./webScrapping/puppeteer/youtube.js";
 import resourceConstants from "./constants/ResourceConstants.js";
 import {
-  puppeteerJumpTable,
-  cheerioJumpTable,
   apiClientsJumpTable,
 } from "./jumpTables/index.js";
 import SearchResourcesFromPlatformsResponse from "./models/response/SearchResultsFromPlatformsResponse.js";
@@ -63,8 +60,8 @@ export async function searchCoursesFromYoutube({ topic, level }) {
  * @returns {Promise<SearchResourcesFromPlatformsResponse>} Search results
  */
 export async function searchResourcesFromPlatforms({ topic, level, resourceFlags }) {
-  const responses = {};
 
+  const responses = {};
   await Promise.all(resourceFlags.map(async (flag) => {
     try {
       const url = createUrl([topic, level, "course"], flag);
@@ -85,10 +82,9 @@ export async function searchResourcesFromPlatforms({ topic, level, resourceFlags
  * @param {Object} functionResponse - The response from the function.
  * @returns {Object[]} An array of expanded conversation messages.
  */
-export function expandMessages(messages, assistantResponse, functionResponse) {
-  if (!assistantResponse || !functionResponse) {
+export function expandMessages(messages, assistantResponse,  functionResponse) {
+  if (!functionResponse) {
     throw new Error("Assistant response or function response is undefined.");
   }
-
   return [...messages, assistantResponse, functionResponse];
 }

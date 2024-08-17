@@ -25,35 +25,48 @@ class FunctionCallingsController {
   getResponse = async (req, res, next) => {
     try {
       const { userInput, resourceFlags } = req.body;
+
+      const chatMessages =
+        this.createChatMessagesForFirstFunctionCall(userInput);
+      const finalResponse = await this.getServiceResponse(
+        chatMessages,
+        resourceFlags
+      );
+
+      if (!finalResponse) {
+        return res.status(200).json(null);
+      }
       
-      const chatMessages = this.createChatMessages(userInput);
-      const finalResponse = await this.getServiceResponse(chatMessages, resourceFlags);
-      
-      const parsedResponse = this.parseResponse(finalResponse);
-      
-      res.status(200).json({ parsedResponse });
+
+      const cleanFinalResponse = finalResponse.replace(/```json\n|\n```/g, '');
+
+      const response = this.parseResponse(cleanFinalResponse);
+
+      return res.status(200).json({ response });
     } catch (error) {
       next(error);
     }
-  }
-
+  };
   /**
    * Creates the initial chat messages array.
    * @param {string} userInput - The input provided by the user
    * @returns {Array} An array of chat message objects
    */
-  createChatMessages = (userInput) => {
+  createChatMessagesForFirstFunctionCall = (userInput) => {
     return [
       {
         role: "system",
-        content: "Be precise, funny and give a humorous answer, not only list the videos, but explain them and create a natural response instead of listing links like a robot"
+        content: `Based on the user input and function list that is sent to you, extract the topic and the level information from user input.
+           If you cannot do this job, please return the topic and level as null, but always return a topic and a level.
+           Based on our user input and functions object that are sent to you, you should always return function_call
+           `,
       },
       {
         role: "user",
-        content: userInput
-      }
+        content: userInput,
+      },
     ];
-  }
+  };
 
   /**
    * Fetches the response from the OpenAI API.
@@ -66,19 +79,33 @@ class FunctionCallingsController {
       console.log("First Function Call Started");
       const startTime = performance.now();
 
-      const firstFunctionResponse = await this.performFirstFunctionCall(chatMessages);
-      
+      const firstFunctionResponse = await this.performFirstFunctionCall(
+        chatMessages
+      );
+
+      if (!firstFunctionResponse) {
+        return null;
+      }
+
       // if (!this.isValidFunctionResponse(firstFunctionResponse)) {
       //   return null;
       // }
 
-      const expandedMessages = this.expandMessagesWithFunctionCall(chatMessages, firstFunctionResponse, resourceFlags);
-      
+      console.log("firstFunctionResponse:", firstFunctionResponse);
+
+      const expandedMessages = await this.expandMessagesWithFunctionCall(
+        chatMessages,
+        firstFunctionResponse,
+        resourceFlags
+      );
+
       console.log("Second Function Call Started");
       const startTimeSecond = performance.now();
 
-      const finalResponse = await this.performSecondFunctionCall(expandedMessages);
-      
+      const finalResponse = await this.performSecondFunctionCall(
+        expandedMessages
+      );
+
       this.logPerformance("First Function Call", startTime);
       this.logPerformance("Second Function Call", startTimeSecond);
 
@@ -87,7 +114,7 @@ class FunctionCallingsController {
       console.error("The sample encountered an error: ", error);
       throw new ApiError(error?.message, error?.statusCode);
     }
-  }
+  };
 
   /**
    * Performs the first function call to OpenAI.
@@ -95,14 +122,36 @@ class FunctionCallingsController {
    * @returns {Promise<Object>} The result of the first function call
    */
   performFirstFunctionCall = async (chatMessages) => {
-    const result = await getCompletion({
-      client: this.openAiClient,
-      messages: chatMessages,
-      functions: functionList,
-    });
+    try {
+      const result = await getCompletion({
+        client: this.openAiClient,
+        messages: chatMessages,
+        functions: functionList,
+      });
 
-    return result.choices[0].message;
-  }
+      const message = structuredClone(result.choices[0].message);
+
+      if (!message.function_call) {
+        return null;
+      }
+
+      const level = "beginner";
+
+      const argumentList = JSON.parse(message.function_call.arguments);
+      
+      const content = JSON.parse(message.content);
+
+      if (level in argumentList === false) {
+        argumentList.level = content?.level || level; 
+        argumentList.level = level;
+        message.function_call.arguments = JSON.stringify(argumentList);
+      }
+
+      return message;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   /**
    * Checks if the function response is valid.
@@ -110,9 +159,13 @@ class FunctionCallingsController {
    * @returns {boolean} True if the response is valid, false otherwise
    */
   isValidFunctionResponse = (functionResponse) => {
-    return functionResponse.youtube || functionResponse.udemy || 
-           functionResponse.coursera || functionResponse.medium;
-  }
+    return (
+      functionResponse.youtube ||
+      functionResponse.udemy ||
+      functionResponse.coursera ||
+      functionResponse.medium
+    );
+  };
 
   /**
    * Expands the chat messages with the function call.
@@ -121,13 +174,18 @@ class FunctionCallingsController {
    * @param {Array} resourceFlags - The array of resource flags
    * @returns {Array} The expanded chat messages
    */
-  expandMessagesWithFunctionCall = (chatMessages, responseMessage, resourceFlags) => {
-    const { name: functionName, arguments: functionArgs } = responseMessage.function_call;
+  expandMessagesWithFunctionCall = async (
+    chatMessages,
+    responseMessage,
+    resourceFlags
+  ) => {
+    const { name: functionName, arguments: functionArgs } =
+      responseMessage.function_call;
     const parsedArgs = JSON.parse(functionArgs);
     parsedArgs.resourceFlags = resourceFlags;
 
     const functionToCall = availableFunctions[functionName];
-    const functionResponse = functionToCall(parsedArgs);
+    const functionResponse = await functionToCall(parsedArgs);
 
     const assistantExpanseMessage = {
       role: responseMessage.role,
@@ -146,8 +204,12 @@ class FunctionCallingsController {
 
     chatMessages.push(this.getSystemInstructionMessage());
 
-    return expandMessages(chatMessages, assistantExpanseMessage, functionExpanseMessage);
-  }
+    return expandMessages(
+      chatMessages,
+      assistantExpanseMessage,
+      functionExpanseMessage
+    );
+  };
 
   /**
    * Gets the system instruction message.
@@ -156,11 +218,10 @@ class FunctionCallingsController {
   getSystemInstructionMessage = () => {
     return {
       role: "system",
-      content: `For youtube, return answer in an object list format that includes url, channelName, thumbnailUrl etc. And For udemy, do the same thing but with udemy properties.
-         If you have an extra joke, introduction before answer etc. anything but not related to course informations, also return them in an object with properties such as {..funnyEntrance etc..} 
-         Return the response in a JSON format, I will parse it.`
+      content: `For youtube, return answer in an object list format that includes url, channelName, thumbnailUrl etc.And For udemy, do the same thing but with udemy properties.
+      Response should be in JSON format.`,
     };
-  }
+  };
 
   /**
    * Performs the second function call to OpenAI.
@@ -175,8 +236,9 @@ class FunctionCallingsController {
       temperature: 0.4,
     });
 
-    return secondResponse.choices[0].message.content;
-  }
+    const response = secondResponse.choices[0].message.content; 
+    return response;
+  };
 
   /**
    * Logs the performance of a function call.
@@ -187,7 +249,7 @@ class FunctionCallingsController {
     const endTime = performance.now();
     console.log(`${functionName} Latency:`, endTime - startTime);
     console.log("*".repeat(60));
-  }
+  };
 
   /**
    * Parses the JSON response.
@@ -196,7 +258,7 @@ class FunctionCallingsController {
    */
   parseResponse = (response) => {
     return JSON.parse(response);
-  }
+  };
 }
 
 export default new FunctionCallingsController();

@@ -1,5 +1,3 @@
-import { getTopYouTubeLinksAndTitles } from "../webScrapping/cheerio/youtube.js";
-import { getUdemyCourses } from "../webScrapping/cheerio/udemy.js";
 import UdemyClientApi from "../apiClients/udemy.js";
 import YoutubeApiClient from "../apiClients/youtube.js";
 

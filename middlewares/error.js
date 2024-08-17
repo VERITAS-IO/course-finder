@@ -6,11 +6,13 @@ import ApiError from "../models/errors/ApiError.js"
 const globalErrorHandler = (err, req, res, next) => {
   const errMsg = err.message || "Internal Server Error";
   const errStat = err.statusCode || 500;
+  const errStack = err.stack || ""
   res.status(errStat).send({
     error: {
       message: errMsg,
       status: errStat,
       success: err.success,
+      stack: errStack
     },
   });
   return next();

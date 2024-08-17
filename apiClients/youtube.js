@@ -12,9 +12,9 @@ class YoutubeApiClient {
    * @returns {Promise<YoutubeResponse[]|null>} A promise that resolves to an array of YoutubeResponse objects or null.
    * @throws {Error} If there's an error fetching the video list.
    */
-  async getVideoList(baseUrl) {
+  getVideoList = async (baseUrl) => {
     try {
-      const initialResponse = await this.fetchInitialVideoList(baseUrl);
+      const initialResponse =await this.fetchInitialVideoList(baseUrl);
       const videoIds = this.extractVideoIds(initialResponse);
 
       if (!videoIds) {
@@ -31,7 +31,11 @@ class YoutubeApiClient {
 
       return this.processVideoResponse(detailedResponse);
     } catch (error) {
-      this.handleError(error);
+      console.error(
+        "Error fetching video list from Youtube:",
+        error.response?.data || error.message
+      );
+      throw error;
     }
   }
   /**
@@ -39,7 +43,7 @@ class YoutubeApiClient {
    * @param {string} url - The URL for the initial API request.
    * @returns {Promise<Object>} The response data from the API.
    */
-  async fetchInitialVideoList(url) {
+  fetchInitialVideoList = async (url) => {
     const response = await axios.get(url);
     return response.data;
   }
@@ -49,7 +53,7 @@ class YoutubeApiClient {
    * @param {Object} responseData - The data from the initial API response.
    * @returns {string|null} A comma-separated string of video IDs, or null if no valid IDs found.
    */
-  extractVideoIds(responseData) {
+  extractVideoIds = (responseData) => {
     const videoIds = responseData.items
       .filter((item) => item.id.videoId)
       .map((item) => item.id.videoId)
@@ -58,13 +62,14 @@ class YoutubeApiClient {
     return videoIds || null;
   }
 
+
   /**
    * Constructs the URL for fetching detailed video information.
    * @param {string} baseUrl - The original base URL.
    * @param {string} videoIds - Comma-separated video IDs.
    * @returns {URL} The constructed URL for detailed video information.
    */
-  constructDetailedVideoUrl(baseUrl, videoIds) {
+  constructDetailedVideoUrl = (baseUrl, videoIds) => {
     let newUrl = new URL(baseUrl);
     newUrl.pathname = new URL("videos", newUrl).pathname;
     return updateUrlQueryParams(newUrl, {
@@ -81,7 +86,7 @@ class YoutubeApiClient {
    * @param {URL} url - The URL for fetching detailed video information.
    * @returns {Promise<Object>} The response data from the API.
    */
-  async fetchDetailedVideoList(url) {
+  fetchDetailedVideoList = async (url) => {
     const response = await axios.get(url.toString());
     return response.data;
   }
@@ -91,25 +96,13 @@ class YoutubeApiClient {
    * @param {Object} responseData - The data from the detailed video API response.
    * @returns {YoutubeResponse[]} An array of YoutubeResponse objects.
    */
-  processVideoResponse(responseData) {
+  processVideoResponse = (responseData) => {
     return responseData.items.map((item) => {
       const mappedValues = new YoutubeApiResponseDto().toDto(item);
       return new YoutubeResponse().toObject(mappedValues);
     });
   }
 
-  /**
-   * Handles and logs errors from the API requests.
-   * @param {Error} error - The error object.
-   * @throws {Error} Rethrows the error after logging.
-   */
-  handleError = (error) => {
-    console.error(
-      "Error fetching video list from Youtube:",
-      error.response?.data || error.message
-    );
-    throw error;
-  };
 }
 
 export default new YoutubeApiClient();
