@@ -4,6 +4,6 @@ import FunctionCallingsController from "../controllers/FunctionCallingsControlle
 
 const router = express.Router();
 
-router.post("/", FunctionCallingsController.getResponse);
+router.post("", FunctionCallingsController.getResponse);
 
 export default router;

@@ -33,13 +33,14 @@ class FunctionCallingsController {
         resourceFlags
       );
 
+      console.log("finaleResponse:", finalResponse);
+
       if (!finalResponse) {
         return res.status(200).json(null);
-      }
-      
+      }      
 
       const cleanFinalResponse = finalResponse.replace(/```json\n|\n```/g, '');
-
+      console.log("cleanFinalResponse:", cleanFinalResponse);
       const response = this.parseResponse(cleanFinalResponse);
 
       return res.status(200).json({ response });
@@ -56,9 +57,13 @@ class FunctionCallingsController {
     return [
       {
         role: "system",
-        content: `Based on the user input and function list that is sent to you, extract the topic and the level information from user input.
-           If you cannot do this job, please return the topic and level as null, but always return a topic and a level.
-           Based on our user input and functions object that are sent to you, you should always return function_call
+        content: `
+           Based on the user input:
+           1. You should asesss the purpouse of this user.
+           2. You should understand what this user is trying to learn.
+           3. You should understand what is the skillset, experience or level of this user. 
+           4. Based on these information that you've extracted from user input, return the you should always return function_call that includes the topic(the thing user want to learn) and the level(users' level, exprience or skillset on the topic.)
+           5. You should never include an entrance string, or explanation etc. Your aim is to create the function_call response. It should not be empty, your should always create it.
            `,
       },
       {
@@ -131,6 +136,7 @@ class FunctionCallingsController {
 
       const message = structuredClone(result.choices[0].message);
 
+      console.log("first function response:", message);
       if (!message.function_call) {
         return null;
       }
@@ -139,6 +145,7 @@ class FunctionCallingsController {
 
       const argumentList = JSON.parse(message.function_call.arguments);
       
+      console.log("message content:", message.content);
       const content = JSON.parse(message.content);
 
       if (level in argumentList === false) {
@@ -218,10 +225,28 @@ class FunctionCallingsController {
   getSystemInstructionMessage = () => {
     return {
       role: "system",
-      content: `For youtube, return answer in an object list format that includes url, channelName, thumbnailUrl etc.And For udemy, do the same thing but with udemy properties.
-      Response should be in JSON format.`,
+      content: `For YouTube, return the answer in an object list format that includes url, channelName, thumbnailUrl, etc. For Udemy, do the same but with Udemy properties. The response should be in JSON format.
+        1. Your response should always be in the same format, as we are parsing it.
+        2. Return it like the following:
+        {
+          "youtube": [
+          {
+          videoTitle: 'YUMURTA VERİMİ ARTIRMA %100 ETKİLİ YÖNTEM - TAVUKLAR YUMURTLAMIYORSA - TAVUKLARI YUMURTLATAN TARİF',
+            urlPath: 'https://www.youtube.com/watch?v=hkbblNINuHU',
+            imageUrl: 'https://i.ytimg.com/vi/hkbblNINuHU/hqdefault.jpg',
+            ownerName: 'AUSTRALORP',
+            likeCount: '1151',
+            commentCount: '221',
+            description: '#australorp #yumurtatoplama #civciv',
+            rating: ...
+          }
+          ...other videos
+          ] 
+        }
+        3. You should NEVER, EVER INCLUDE A TEXT BEFORE json object. Just return the JSON object. Nothing else. No introduction text, not explanation etc. Nothing.Just bring the json in the structure above.
+        4.Do the same thing for every resource that we've asked you, whether its udemy or coursera etc.`,
+          };
     };
-  };
 
   /**
    * Performs the second function call to OpenAI.

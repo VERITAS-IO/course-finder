@@ -97,12 +97,16 @@ class YoutubeApiClient {
    * @returns {YoutubeResponse[]} An array of YoutubeResponse objects.
    */
   processVideoResponse = (responseData) => {
-    return responseData.items.map((item) => {
+    console.log("responseData:", responseData);
+    const response = responseData.items.map((item) => {
       const mappedValues = new YoutubeApiResponseDto().toDto(item);
       return new YoutubeResponse().toObject(mappedValues);
     });
-  }
 
+    console.log("ProcessVideoResponse:", response);
+
+    return response;
+  };
 }
 
 export default new YoutubeApiClient();

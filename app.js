@@ -17,8 +17,14 @@ const __dirname = path.dirname(__filename); //get dir name from it.
 config();
 
 const app = express();
-app.use(cors());
-app.options('*', cors()) // include before other routes
+
+app.use(cors({
+  origin: 'http://localhost:3000', // replace with your frontend URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('*', cors()) // include before other route
 
 app.use("/uploads", express.static(path.join(__dirname, "./", "uploads")));
 app.use(express.json()); //TIP: to use json files in the js.
